@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vahananjal — Tamil Nadu Market Opportunity Dashboard</title>
+
+  <!-- Chart.js from cdnjs, as requested -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #172033;
+      --muted: #667085;
+      --border: #e5e7eb;
+      --blue: #2563eb;
+      --blue-light: #dbeafe;
+      --green: #059669;
+      --orange: #d97706;
+      --red: #dc2626;
+      --shadow: 0 8px 28px rgba(16, 24, 40, 0.07);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+    }
+
+    .page {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 28px;
+    }
+
+    header {
+      margin-bottom: 24px;
+    }
+
+    .eyebrow {
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    h1 {
+      font-size: 32px;
+      line-height: 1.15;
+      margin: 0 0 8px;
+      letter-spacing: -0.03em;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      max-width: 900px;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    .warning {
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-left: 5px solid var(--orange);
+      padding: 16px 18px;
+      border-radius: 12px;
+      margin: 20px 0 24px;
+      line-height: 1.55;
+    }
+
+    .warning strong {
+      color: #9a3412;
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .kpi {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .kpi-label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .kpi-value {
+      font-size: 30px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    .kpi-note {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 6px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .search {
+      flex: 1 1 300px;
+      min-width: 240px;
+      position: relative;
+    }
+
+    .search input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .search input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-light);
+    }
+
+    button {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 11px 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:hover {
+      border-color: #b8c1d1;
+      background: #f8fafc;
+    }
+
+    button.active {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: white;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+
+    .card.full {
+      grid-column: 1 / -1;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .card h2 {
+      margin: 0 0 4px;
+      font-size: 18px;
+    }
+
+    .card-description {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 430px;
+    }
+
+    .chart-wrap.scatter {
+      height: 500px;
+    }
+
+    .insights {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .insight {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 15px;
+      background: #fafbfc;
+    }
+
+    .insight strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .insight span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .notes {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      color: #475467;
+      line-height: 1.6;
+      font-size: 13px;
+    }
+
+    .notes ul {
+      margin: 8px 0 0;
+      padding-left: 20px;
+    }
+
+    .notes li {
+      margin-bottom: 7px;
+    }
+
+    .source {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 14px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      max-height: 600px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 11px 10px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    th {
+      background: #f8fafc;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      font-size: 12px;
+      color: #475467;
+    }
+
+    td.num,
+    th.num {
+      text-align: right;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 800;
+      background: var(--blue-light);
+      color: #1d4ed8;
+    }
+
+    .tag.warning {
+      background: #fee2e2;
+      color: #b91c1c;
+      border: 0;
+      margin: 0;
+      padding: 4px 8px;
+    }
+
+    .table-count {
+      color: var(--muted);
+      font-size: 12px;
+      align-self: center;
+    }
+
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .card.full {
+        grid-column: auto;
+      }
+
+      .kpis {
+        grid-template-columns: 1fr;
+      }
+
+      .insights {
+        grid-template-columns: 1fr;
+      }
+
+      .page {
+        padding: 16px;
+      }
+
+      h1 {
+        font-size: 26px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+
+    <header>
+      <div class="eyebrow">Vahananjal Market Intelligence</div>
+      <h1>Tamil Nadu District Market Opportunity</h1>
+      <p class="subtitle">
+        2011 population, area and density view for identifying large population pools,
+        concentrated markets and potential expansion districts beyond Chennai.
+      </p>
+    </header>
+
+    <div class="warning">
+      <strong>Data quality warning:</strong>
+      This supplied 38-district CSV should not be treated as a clean official
+      2011 Census geography. Its population totals are
+      <strong>73,975,672</strong>, versus Tamil Nadu's official 2011 Census total of
+      <strong>72,147,030</strong>. The supplied Chennai row is also internally inconsistent:
+      6,748,026 ÷ 462.3 = approximately 14,597/km², not the listed 10,052/km².
+      See the Data notes panel below.
+    </div>
+
+    <section class="kpis">
+      <div class="kpi">
+        <div class="kpi-label">Population in supplied CSV</div>
+        <div class="kpi-value" id="totalPopulation">—</div>
+        <div class="kpi-note">Sum of all 38 supplied district rows</div>
+      </div>
+
+      <div class="kpi">
+        <div class="kpi-label">Districts</div>
+        <div class="kpi-value" id="districtCount">—</div>
+        <div class="kpi-note">Rows in supplied CSV</div>
+      </div>
+
+      <div class="kpi">
+        <div class="kpi-label">Median computed density</div>
+        <div class="kpi-value" id="medianDensity">—</div>
+        <div class="kpi-note">Population ÷ area, people/km²</div>
+      </div>
+    </section>
+
+    <section class="controls">
+      <div class="search">
+        <input
+          id="searchInput"
+          type="search"
+          placeholder="Search district, e.g. Madurai, Salem, Tiruppur..."
+          autocomplete="off"
+        />
+      </div>
+
+      <button id="populationDesc" class="active">Population ↓</button>
+      <button id="populationAsc">Population ↑</button>
+      <button id="densityDesc">Density ↓</button>
+      <button id="densityAsc">Density ↑</button>
+
+      <span class="table-count" id="filterCount"></span>
+    </section>
+
+    <section class="grid">
+
+      <!-- Population chart -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2>Top 15 districts by population</h2>
+            <div class="card-description">
+              Larger population creates a larger potential customer and parcel-origin/destination pool.
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-wrap">
+          <canvas id="populationChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Density chart -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2>Population density</h2>
+            <div class="card-description">
+              Density is recalculated as population ÷ supplied area, rather than relying on the CSV density column.
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-wrap">
+          <canvas id="densityChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Scatter -->
+      <div class="card full">
+        <div class="card-header">
+          <div>
+            <h2>Population vs density</h2>
+            <div class="card-description">
+              Upper-right districts combine a large population with relatively concentrated settlement.
+              Hover over a point to identify the district.
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-wrap scatter">
+          <canvas id="scatterChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Insights -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2>Market insights</h2>
+            <div class="card-description">
+              Findings generated directly from the supplied numbers.
+            </div>
+          </div>
+        </div>
+
+        <div class="insights">
+          <div class="insight">
+            <strong>Large populations beyond Chennai</strong>
+            <span>
+              Tiruvallur has 3.73M people, Salem 3.48M, Coimbatore 3.46M and
+              Madurai 3.04M in the supplied data.
+            </span>
+          </div>
+
+          <div class="insight">
+            <strong>Very dense markets</strong>
+            <span>
+              Excluding Chennai, Tiruvallur and Kanyakumari are both around
+              1,082 people/km², followed by Chengalpattu at about 912/km².
+            </span>
+          </div>
+
+          <div class="insight">
+            <strong>Population + density overlap</strong>
+            <span>
+              Tiruvallur, Chengalpattu, Cuddalore, Salem, Coimbatore, Madurai
+              and Thanjavur sit in the high-population/high-density portion of
+              the supplied dataset.
+            </span>
+          </div>
+
+          <div class="insight">
+            <strong>Potentially efficient expansion zones</strong>
+            <span>
+              Tiruvallur combines 3.73M people with roughly 1,082/km²;
+              Chengalpattu combines 2.56M with roughly 912/km². Both stand out
+              as large and concentrated markets in this dataset.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data notes -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2>Data notes</h2>
+            <div class="card-description">
+              Quality checks performed against the supplied CSV.
+            </div>
+          </div>
+        </div>
+
+        <div class="notes">
+          <ul>
+            <li>
+              <strong>State-total mismatch:</strong>
+              CSV sum = 73,975,672 versus official 2011 Tamil Nadu population
+              = 72,147,030. Difference = 1,828,642 (+2.53%).
+            </li>
+
+            <li>
+              <strong>District geography:</strong>
+              the CSV contains 38 current districts, whereas the 2011 Census
+              district geography had 32 districts. Several current districts
+              were created after 2011 and therefore require boundary
+              reconstruction if presented as "2011 Census by today's districts."
+            </li>
+
+            <li>
+              <strong>Chennai:</strong>
+              CSV population/area implies 14,596.6/km², while the CSV says
+              10,052/km². Official Tamil Nadu government 2011 figures are
+              4,646,732 people and 175 km² for Chennai.
+            </li>
+
+            <li>
+              <strong>Most other density rows:</strong>
+              listed density is close to population ÷ area, generally within
+              normal rounding/area-definition differences. Salem is a notable
+              smaller discrepancy of about 5 people/km².
+            </li>
+
+            <li>
+              <strong>Business interpretation:</strong>
+              population and density are market-sizing proxies, not direct
+              measures of parcel demand, railway connectivity, traveller
+              availability, willingness to use Vahananjal, or last-mile cost.
+            </li>
+          </ul>
+
+          <div class="source">
+            Official reference: Tamil Nadu Statistical Handbook, 2011 Census
+            district population tables; Census of India Population Finder /
+            Primary Census Abstract.
+          </div>
+        </div>
+      </div>
+
+      <!-- District table -->
+      <div class="card full">
+        <div class="card-header">
+          <div>
+            <h2>District detail</h2>
+            <div class="card-description">
+              Search above to filter the district table and all visualizations.
+            </div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>District</th>
+                <th>Headquarters</th>
+                <th class="num">Population</th>
+                <th class="num">Area km²</th>
+                <th class="num">CSV density</th>
+                <th class="num">Computed density</th>
+                <th>Quality</th>
+              </tr>
+            </thead>
+            <tbody id="districtTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+  </div>
+
+  <script>
+    /*
+      DATA EMBEDDED DIRECTLY FROM THE SUPPLIED CSV.
+
+      Important:
+      - Population and area are retained exactly as supplied.
+      - Computed density is intentionally calculated in JavaScript:
+          population / area
+      - The supplied Density_per_km2 column is retained separately so the
+        dashboard can expose inconsistencies.
+    */
+
+    const districts = [
+      {district:"Ariyalur", headquarters:"Ariyalur", population:754894, area:2027.6, csvDensity:372},
+      {district:"Chengalpattu", headquarters:"Chengalpattu", population:2556244, area:2802.6, csvDensity:912},
+      {district:"Chennai", headquarters:"Chennai", population:6748026, area:462.3, csvDensity:10052},
+      {district:"Coimbatore", headquarters:"Coimbatore", population:3458045, area:4950.7, csvDensity:699},
+      {district:"Cuddalore", headquarters:"Cuddalore", population:2605914, area:3870.0, csvDensity:673},
+      {district:"Dharmapuri", headquarters:"Dharmapuri", population:1506843, area:4735.7, csvDensity:318},
+      {district:"Dindigul", headquarters:"Dindigul", population:2159775, area:6289.1, csvDensity:343},
+      {district:"Erode", headquarters:"Erode", population:2251744, area:6036.0, csvDensity:373},
+      {district:"Kallakurichi", headquarters:"Kallakurichi", population:1370281, area:3440.8, csvDensity:398},
+      {district:"Kancheepuram", headquarters:"Kancheepuram", population:1166401, area:1800.2, csvDensity:648},
+      {district:"Kanyakumari", headquarters:"Nagercoil", population:1870374, area:1729.2, csvDensity:1082},
+      {district:"Karur", headquarters:"Karur", population:1064493, area:3022.3, csvDensity:352},
+      {district:"Krishnagiri", headquarters:"Krishnagiri", population:1883731, area:5414.4, csvDensity:348},
+      {district:"Madurai", headquarters:"Madurai", population:3038252, area:3846.4, csvDensity:790},
+      {district:"Mayiladuthurai", headquarters:"Mayiladuthurai", population:918356, area:1237.1, csvDensity:742},
+      {district:"Nagapattinam", headquarters:"Nagapattinam", population:697069, area:1459.0, csvDensity:478},
+      {district:"Namakkal", headquarters:"Namakkal", population:1726601, area:3573.4, csvDensity:483},
+      {district:"Nilgiris", headquarters:"Ooty", population:735394, area:2452.5, csvDensity:300},
+      {district:"Perambalur", headquarters:"Perambalur", population:565223, area:1836.6, csvDensity:308},
+      {district:"Pudukkottai", headquarters:"Pudukkottai", population:1618345, area:4847.8, csvDensity:334},
+      {district:"Ramanathapuram", headquarters:"Ramanathapuram", population:1353445, area:4243.1, csvDensity:319},
+      {district:"Ranipet", headquarters:"Ranipet", population:1210277, area:2234.3, csvDensity:542},
+      {district:"Salem", headquarters:"Salem", population:3482056, area:5245.0, csvDensity:669},
+      {district:"Sivaganga", headquarters:"Sivaganga", population:1339101, area:4086.0, csvDensity:328},
+      {district:"Tenkasi", headquarters:"Tenkasi", population:1407627, area:2916.1, csvDensity:483},
+      {district:"Thanjavur", headquarters:"Thanjavur", population:2405890, area:3396.6, csvDensity:708},
+      {district:"Theni", headquarters:"Theni", population:1245899, area:3066.0, csvDensity:406},
+      {district:"Thoothukudi", headquarters:"Thoothukudi", population:1750176, area:4621.0, csvDensity:379},
+      {district:"Tiruchirappalli", headquarters:"Tiruchirappalli", population:2722290, area:4407.0, csvDensity:618},
+      {district:"Tirunelveli", headquarters:"Tirunelveli", population:1665253, area:3842.4, csvDensity:433},
+      {district:"Tirupathur", headquarters:"Tirupattur", population:1111812, area:1792.9, csvDensity:620},
+      {district:"Tiruppur", headquarters:"Tiruppur", population:2479052, area:5186.3, csvDensity:478},
+      {district:"Tiruvallur", headquarters:"Tiruvallur", population:3728104, area:3444.2, csvDensity:1082},
+      {district:"Tiruvannamalai", headquarters:"Tiruvannamalai", population:2464875, area:6191.0, csvDensity:398},
+      {district:"Tiruvarur", headquarters:"Thiruvarur", population:1264277, area:2161.0, csvDensity:585},
+      {district:"Vellore", headquarters:"Vellore", population:1614242, area:2222.1, csvDensity:726},
+      {district:"Viluppuram", headquarters:"Viluppuram", population:2093003, area:3725.5, csvDensity:562},
+      {district:"Virudhunagar", headquarters:"Virudhunagar", population:1942288, area:4288.0, csvDensity:453}
+    ];
+
+    districts.forEach(d => {
+      d.computedDensity = d.population / d.area;
+      d.densityDifference = d.csvDensity - d.computedDensity;
+      d.densityErrorPct =
+        Math.abs(d.densityDifference) / d.computedDensity * 100;
+    });
+
+    const OFFICIAL_TN_POPULATION_2011 = 72147030;
+
+    const numberFormat = new Intl.NumberFormat("en-IN");
+    const oneDecimal = new Intl.NumberFormat("en-IN", {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1
+    });
+
+    const totalPopulation = districts.reduce(
+      (sum, d) => sum + d.population,
+      0
+    );
+
+    const sortedDensities = districts
+      .map(d => d.computedDensity)
+      .sort((a, b) => a - b);
+
+    const medianDensity =
+      sortedDensities.length % 2 === 0
+        ? (sortedDensities[sortedDensities.length / 2 - 1] +
+           sortedDensities[sortedDensities.length / 2]) / 2
+        : sortedDensities[Math.floor(sortedDensities.length / 2)];
+
+    document.getElementById("totalPopulation").textContent =
+      numberFormat.format(totalPopulation);
+
+    document.getElementById("districtCount").textContent =
+      districts.length;
+
+    document.getElementById("medianDensity").textContent =
+      `${oneDecimal.format(medianDensity)} / km²`;
+
+    const searchInput = document.getElementById("searchInput");
+    const filterCount = document.getElementById("filterCount");
+
+    let populationOrder = "desc";
+    let densityOrder = "desc";
+
+    let populationChart;
+    let densityChart;
+    let scatterChart;
+
+    function getFilteredDistricts() {
+      const q = searchInput.value.trim().toLowerCase();
+
+      if (!q) {
+        return [...districts];
+      }
+
+      return districts.filter(d =>
+        d.district.toLowerCase().includes(q) ||
+        d.headquarters.toLowerCase().includes(q)
+      );
+    }
+
+    function qualityFlag(d) {
+      /*
+        A density discrepancy above 2% is flagged.
+        This catches Chennai very clearly while not over-flagging normal
+        rounding/area-definition differences.
+      */
+      if (d.densityErrorPct > 2) {
+        return `<span class="tag warning">Check density</span>`;
+      }
+
+      return `<span class="tag">OK</span>`;
+    }
+
+    function renderTable(data) {
+      const tbody = document.getElementById("districtTable");
+
+      tbody.innerHTML = data
+        .sort((a, b) => b.population - a.population)
+        .map(d => `
+          <tr>
+            <td><strong>${d.district}</strong></td>
+            <td>${d.headquarters}</td>
+            <td class="num">${numberFormat.format(d.population)}</td>
+            <td class="num">${oneDecimal.format(d.area)}</td>
+            <td class="num">${numberFormat.format(d.csvDensity)}</td>
+            <td class="num">${oneDecimal.format(d.computedDensity)}</td>
+            <td>${qualityFlag(d)}</td>
+          </tr>
+        `)
+        .join("");
+
+      filterCount.textContent =
+        `${data.length} of ${districts.length} districts`;
+    }
+
+    function chartCommonOptions() {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: {
+          duration: 250
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {}
+          }
+        }
+      };
+    }
+
+    function renderPopulationChart(data) {
+      const sorted = [...data]
+        .sort((a, b) =>
+          populationOrder === "desc"
+            ? b.population - a.population
+            : a.population - b.population
+        )
+        .slice(0, 15);
+
+      const labels = sorted.map(d => d.district);
+      const values = sorted.map(d => d.population);
+
+      if (populationChart) {
+        populationChart.destroy();
+      }
+
+      populationChart = new Chart(
+        document.getElementById("populationChart"),
+        {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [{
+              label: "Population",
+              data: values,
+              backgroundColor: "#2563eb",
+              borderRadius: 5
+            }]
+          },
+          options: {
+            ...chartCommonOptions(),
+            indexAxis: "y",
+            scales: {
+              x: {
+                beginAtZero: true,
+                ticks: {
+                  callback: value =>
+                    new Intl.NumberFormat("en-IN", {
+                      notation: "compact",
+                      maximumFractionDigits: 1
+                    }).format(value)
+                },
+                grid: {
+                  color: "#eef0f4"
+                }
+              },
+              y: {
+                grid: {
+                  display: false
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                display: false
+              },
+              tooltip: {
+                callbacks: {
+                  label: context =>
+                    ` Population: ${numberFormat.format(context.raw)}`
+                }
+              }
+            }
+          }
+        }
+      );
+    }
+
+    function renderDensityChart(data) {
+      const sorted = [...data]
+        .sort((a, b) => b.computedDensity - a.computedDensity);
+
+      const labels = sorted.map(d => d.district);
+      const values = sorted.map(d => d.computedDensity);
+
+      if (densityChart) {
+        densityChart.destroy();
+      }
+
+      densityChart = new Chart(
+        document.getElementById("densityChart"),
+        {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [{
+              label: "Computed density",
+              data: values,
+              backgroundColor: "#059669",
+              borderRadius: 5
+            }]
+          },
+          options: {
+            ...chartCommonOptions(),
+            indexAxis: "y",
+            scales: {
+              x: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: "People per km²"
+                },
+                grid: {
+                  color: "#eef0f4"
+                }
+              },
+              y: {
+                grid: {
+                  display: false
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                display: false
+              },
+              tooltip: {
+                callbacks: {
+                  label: context =>
+                    ` ${oneDecimal.format(context.raw)} people/km²`
+                }
+              }
+            }
+          }
+        }
+      );
+    }
+
+    function renderScatterChart(data) {
+      const points = data.map(d => ({
+        x: d.population,
+        y: d.computedDensity,
+        district: d.district,
+        area: d.area
+      }));
+
+      if (scatterChart) {
+        scatterChart.destroy();
+      }
+
+      scatterChart = new Chart(
+        document.getElementById("scatterChart"),
+        {
+          type: "scatter",
+          data: {
+            datasets: [{
+              label: "Districts",
+              data: points,
+              pointRadius: 6,
+              pointHoverRadius: 9,
+              backgroundColor: "#2563eb"
+            }]
+          },
+          options: {
+            ...chartCommonOptions(),
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: "Population"
+                },
+                ticks: {
+                  callback: value =>
+                    new Intl.NumberFormat("en-IN", {
+                      notation: "compact",
+                      maximumFractionDigits: 1
+                    }).format(value)
+                },
+                grid: {
+                  color: "#eef0f4"
+                }
+              },
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: "Computed density — people/km²"
+                },
+                grid: {
+                  color: "#eef0f4"
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                display: false
+              },
+              tooltip: {
+                callbacks: {
+                  title: context =>
+                    context[0].raw.district,
+                  label: context => [
+                    `Population: ${numberFormat.format(context.raw.x)}`,
+                    `Density: ${oneDecimal.format(context.raw.y)}/km²`,
+                    `Area: ${oneDecimal.format(context.raw.area)} km²`
+                  ]
+                }
+              }
+            }
+          }
+        }
+      );
+    }
+
+    function renderAll() {
+      const filtered = getFilteredDistricts();
+
+      renderTable(filtered);
+      renderPopulationChart(filtered);
+      renderDensityChart(filtered);
+      renderScatterChart(filtered);
+    }
+
+    function setActiveButton(activeId) {
+      document.querySelectorAll("button").forEach(button => {
+        button.classList.remove("active");
+      });
+
+      document.getElementById(activeId).classList.add("active");
+    }
+
+    document
+      .getElementById("populationDesc")
+      .addEventListener("click", () => {
+        populationOrder = "desc";
+        setActiveButton("populationDesc");
+        renderAll();
+      });
+
+    document
+      .getElementById("populationAsc")
+      .addEventListener("click", () => {
+        populationOrder = "asc";
+        setActiveButton("populationAsc");
+        renderAll();
+      });
+
+    document
+      .getElementById("densityDesc")
+      .addEventListener("click", () => {
+        densityOrder = "desc";
+        setActiveButton("densityDesc");
+        renderAll();
+      });
+
+    document
+      .getElementById("densityAsc")
+      .addEventListener("click", () => {
+        densityOrder = "asc";
+        setActiveButton("densityAsc");
+        renderAll();
+      });
+
+    searchInput.addEventListener("input", renderAll);
+
+    renderAll();
+  </script>
+</body>
+</html>
