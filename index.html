@@ -173,6 +173,23 @@
       color: white;
     }
 
+    .toggle-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toggle-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #98a2b3;
+    }
+
+    .toggle-button.active .toggle-dot {
+      background: #ffffff;
+    }
+
     .grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -435,6 +452,11 @@
       <button id="densityDesc">Density ↓</button>
       <button id="densityAsc">Density ↑</button>
 
+      <button id="excludeChennai" class="toggle-button active" type="button">
+        <span class="toggle-dot"></span>
+        Exclude Chennai
+      </button>
+
       <span class="table-count" id="filterCount"></span>
     </section>
 
@@ -463,6 +485,7 @@
             <h2>Population density</h2>
             <div class="card-description">
               Density is recalculated as population ÷ supplied area, rather than relying on the CSV density column.
+              Chennai is excluded by default to make the expansion market easier to read.
             </div>
           </div>
         </div>
@@ -479,7 +502,7 @@
             <h2>Population vs density</h2>
             <div class="card-description">
               Upper-right districts combine a large population with relatively concentrated settlement.
-              Hover over a point to identify the district.
+              Chennai is excluded by default. The five largest populations shown are labelled.
             </div>
           </div>
         </div>
@@ -804,13 +827,18 @@
 
     const searchInput = document.getElementById("searchInput");
     const filterCount = document.getElementById("filterCount");
+    const excludeChennaiButton = document.getElementById("excludeChennai");
 
     let populationOrder = "desc";
     let densityOrder = "desc";
 
+    // ON by default.
+    let excludeChennai = true;
+
     let populationChart;
     let densityChart;
     let scatterChart;
+
 
     function getFilteredDistricts() {
       const q = searchInput.value.trim().toLowerCase();
@@ -825,6 +853,26 @@
       );
     }
 
+
+    /*
+      Population chart uses the normal search-filtered data and ALWAYS
+      includes Chennai.
+
+      Density and scatter use the same search-filtered data, but Chennai
+      is removed when the toggle is ON.
+    */
+
+    function getDensityAndScatterDistricts() {
+      const filtered = getFilteredDistricts();
+
+      if (!excludeChennai) {
+        return filtered;
+      }
+
+      return filtered.filter(d => d.district !== "Chennai");
+    }
+
+
     function qualityFlag(d) {
       /*
         A density discrepancy above 2% is flagged.
@@ -837,6 +885,7 @@
 
       return `<span class="tag">OK</span>`;
     }
+
 
     function renderTable(data) {
       const tbody = document.getElementById("districtTable");
@@ -860,6 +909,7 @@
         `${data.length} of ${districts.length} districts`;
     }
 
+
     function chartCommonOptions() {
       return {
         responsive: true,
@@ -877,6 +927,7 @@
         }
       };
     }
+
 
     function renderPopulationChart(data) {
       const sorted = [...data]
@@ -946,6 +997,7 @@
       );
     }
 
+
     function renderDensityChart(data) {
       const sorted = [...data]
         .sort((a, b) => b.computedDensity - a.computedDensity);
@@ -1006,12 +1058,80 @@
       );
     }
 
+
+    /*
+      Custom Chart.js plugin.
+
+      Labels only the top 5 districts by population among the districts
+      currently visible in the scatter plot.
+    */
+
+    const topFiveScatterLabelsPlugin = {
+      id: "topFiveScatterLabels",
+
+      afterDatasetsDraw(chart) {
+        const dataset = chart.data.datasets[0];
+
+        if (!dataset || !dataset.data) {
+          return;
+        }
+
+        const topFiveNames = new Set(
+          [...dataset.data]
+            .sort((a, b) => b.population - a.population)
+            .slice(0, 5)
+            .map(point => point.district)
+        );
+
+        const meta = chart.getDatasetMeta(0);
+        const ctx = chart.ctx;
+
+        ctx.save();
+
+        ctx.font = "600 11px Inter, system-ui, -apple-system, sans-serif";
+        ctx.fillStyle = "#172033";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+
+        meta.data.forEach((element, index) => {
+          const point = dataset.data[index];
+
+          if (!topFiveNames.has(point.district)) {
+            return;
+          }
+
+          const position = element.getProps(
+            ["x", "y"],
+            true
+          );
+
+          ctx.fillText(
+            point.district,
+            position.x + 9,
+            position.y - 8
+          );
+        });
+
+        ctx.restore();
+      }
+    };
+
+
     function renderScatterChart(data) {
-      const points = data.map(d => ({
+      /*
+        Sort population descending first so determining the top five is
+        straightforward and deterministic.
+      */
+      const sorted = [...data].sort(
+        (a, b) => b.population - a.population
+      );
+
+      const points = sorted.map(d => ({
         x: d.population,
         y: d.computedDensity,
         district: d.district,
-        area: d.area
+        area: d.area,
+        population: d.population
       }));
 
       if (scatterChart) {
@@ -1022,6 +1142,11 @@
         document.getElementById("scatterChart"),
         {
           type: "scatter",
+
+          plugins: [
+            topFiveScatterLabelsPlugin
+          ],
+
           data: {
             datasets: [{
               label: "Districts",
@@ -1031,14 +1156,17 @@
               backgroundColor: "#2563eb"
             }]
           },
+
           options: {
             ...chartCommonOptions(),
+
             scales: {
               x: {
                 title: {
                   display: true,
                   text: "Population"
                 },
+
                 ticks: {
                   callback: value =>
                     new Intl.NumberFormat("en-IN", {
@@ -1046,29 +1174,36 @@
                       maximumFractionDigits: 1
                     }).format(value)
                 },
+
                 grid: {
                   color: "#eef0f4"
                 }
               },
+
               y: {
                 beginAtZero: true,
+
                 title: {
                   display: true,
                   text: "Computed density — people/km²"
                 },
+
                 grid: {
                   color: "#eef0f4"
                 }
               }
             },
+
             plugins: {
               legend: {
                 display: false
               },
+
               tooltip: {
                 callbacks: {
                   title: context =>
                     context[0].raw.district,
+
                   label: context => [
                     `Population: ${numberFormat.format(context.raw.x)}`,
                     `Density: ${oneDecimal.format(context.raw.y)}/km²`,
@@ -1082,14 +1217,27 @@
       );
     }
 
+
     function renderAll() {
       const filtered = getFilteredDistricts();
 
+      /*
+        KPI totals are intentionally NOT affected by the Chennai toggle.
+        The population chart also continues to use all filtered districts.
+      */
       renderTable(filtered);
       renderPopulationChart(filtered);
-      renderDensityChart(filtered);
-      renderScatterChart(filtered);
+
+      /*
+        Only density and scatter honor "Exclude Chennai".
+      */
+      const densityAndScatterData =
+        getDensityAndScatterDistricts();
+
+      renderDensityChart(densityAndScatterData);
+      renderScatterChart(densityAndScatterData);
     }
+
 
     function setActiveButton(activeId) {
       document.querySelectorAll("button").forEach(button => {
@@ -1099,6 +1247,7 @@
       document.getElementById(activeId).classList.add("active");
     }
 
+
     document
       .getElementById("populationDesc")
       .addEventListener("click", () => {
@@ -1106,6 +1255,7 @@
         setActiveButton("populationDesc");
         renderAll();
       });
+
 
     document
       .getElementById("populationAsc")
@@ -1115,6 +1265,7 @@
         renderAll();
       });
 
+
     document
       .getElementById("densityDesc")
       .addEventListener("click", () => {
@@ -1122,6 +1273,7 @@
         setActiveButton("densityDesc");
         renderAll();
       });
+
 
     document
       .getElementById("densityAsc")
@@ -1131,7 +1283,37 @@
         renderAll();
       });
 
+
+    /*
+      Exclude Chennai toggle.
+
+      ON by default.
+      It affects ONLY:
+        - density chart
+        - population vs density scatter
+
+      It does NOT affect:
+        - KPI totals
+        - district count
+        - median density
+        - population chart
+        - district table
+    */
+
+    excludeChennaiButton.addEventListener("click", () => {
+      excludeChennai = !excludeChennai;
+
+      excludeChennaiButton.classList.toggle(
+        "active",
+        excludeChennai
+      );
+
+      renderAll();
+    });
+
+
     searchInput.addEventListener("input", renderAll);
+
 
     /*
       Populate the non-chart portions immediately, then load Chart.js.
