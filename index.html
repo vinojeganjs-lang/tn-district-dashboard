@@ -5,9 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Vahananjal — Tamil Nadu Market Opportunity Dashboard</title>
 
-  <!-- Chart.js from cdnjs, as requested -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
-
   <style>
     :root {
       --bg: #f5f7fb;
@@ -223,6 +220,29 @@
       height: 500px;
     }
 
+    .chart-error {
+      height: 100%;
+      min-height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 30px;
+      color: var(--muted);
+      background: #f8fafc;
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    .chart-error strong {
+      display: block;
+      color: var(--text);
+      margin-bottom: 6px;
+      font-size: 15px;
+    }
+
     .insights {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -431,7 +451,7 @@
           </div>
         </div>
 
-        <div class="chart-wrap">
+        <div class="chart-wrap" id="populationChartWrap">
           <canvas id="populationChart"></canvas>
         </div>
       </div>
@@ -447,7 +467,7 @@
           </div>
         </div>
 
-        <div class="chart-wrap">
+        <div class="chart-wrap" id="densityChartWrap">
           <canvas id="densityChart"></canvas>
         </div>
       </div>
@@ -464,7 +484,7 @@
           </div>
         </div>
 
-        <div class="chart-wrap scatter">
+        <div class="chart-wrap scatter" id="scatterChartWrap">
           <canvas id="scatterChart"></canvas>
         </div>
       </div>
@@ -608,6 +628,89 @@
 
   <script>
     /*
+      Chart.js loader
+
+      Primary:
+        jsDelivr
+
+      Fallback:
+        cdnjs chart.umd.js
+
+      Charts are rendered ONLY after the Chart constructor is confirmed
+      to exist. If both CDNs fail, the chart areas show a friendly message.
+    */
+
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+
+        script.src = src;
+        script.async = true;
+
+        script.onload = () => {
+          if (typeof window.Chart !== "undefined") {
+            resolve();
+          } else {
+            reject(new Error("Chart.js loaded but Chart is unavailable."));
+          }
+        };
+
+        script.onerror = () => {
+          reject(new Error(`Failed to load ${src}`));
+        };
+
+        document.head.appendChild(script);
+      });
+    }
+
+    async function loadChartJs() {
+      const primary =
+        "https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js";
+
+      const fallback =
+        "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.js";
+
+      try {
+        await loadScript(primary);
+        return true;
+      } catch (primaryError) {
+        console.warn(
+          "Chart.js primary CDN failed. Trying fallback CDN.",
+          primaryError
+        );
+      }
+
+      try {
+        await loadScript(fallback);
+        return true;
+      } catch (fallbackError) {
+        console.error(
+          "Chart.js failed to load from both CDNs.",
+          fallbackError
+        );
+        return false;
+      }
+    }
+
+    function showChartLoadError() {
+      const message = `
+        <div class="chart-error">
+          <div>
+            <strong>Chart unavailable right now</strong>
+            The dashboard data is still available below, but the chart library
+            could not be loaded. Please refresh the page or check your network
+            connection.
+          </div>
+        </div>
+      `;
+
+      document.getElementById("populationChartWrap").innerHTML = message;
+      document.getElementById("densityChartWrap").innerHTML = message;
+      document.getElementById("scatterChartWrap").innerHTML = message;
+    }
+
+
+    /*
       DATA EMBEDDED DIRECTLY FROM THE SUPPLIED CSV.
 
       Important:
@@ -669,6 +772,7 @@
     const OFFICIAL_TN_POPULATION_2011 = 72147030;
 
     const numberFormat = new Intl.NumberFormat("en-IN");
+
     const oneDecimal = new Intl.NumberFormat("en-IN", {
       minimumFractionDigits: 1,
       maximumFractionDigits: 1
@@ -1029,7 +1133,20 @@
 
     searchInput.addEventListener("input", renderAll);
 
-    renderAll();
+    /*
+      Populate the non-chart portions immediately, then load Chart.js.
+      This means the dashboard remains useful even if both CDNs are unavailable.
+    */
+
+    renderTable(getFilteredDistricts());
+
+    loadChartJs().then(chartLoaded => {
+      if (chartLoaded && typeof window.Chart !== "undefined") {
+        renderAll();
+      } else {
+        showChartLoadError();
+      }
+    });
   </script>
 </body>
 </html>
